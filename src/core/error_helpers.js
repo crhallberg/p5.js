@@ -1,4 +1,6 @@
 /**
+ * @module Core
+ * @submodule Helpers
  * @for p5
  * @requires core
  */
@@ -85,6 +87,22 @@ define(function (require) {
     );
   }
 
+  var userLang = navigator.language || navigator.userLanguage;
+  userLang = userLang.split('-')[0];
+  var languageStrings = {
+    'en': {
+      'wrong_param_count': 'You wrote __FUNC__(__GIVEN_X__). ' +
+        '__FUNC__ was expecting __PARAMCOUNT__ parameters. ' +
+        'Try __FUNC__(__CORRECT_X__).',
+      'empty_var': 'It looks like __FUNC__ received an empty variable in ' +
+        'spot #__SPOT__. This could be a problem with variable scope.',
+      'wrong_type': '__FUNC__ was expecting a __TYPE__ for parameter ' +
+        '#__SPOT__, received __VAR__ instead.',
+      'multi_format': ' __FUNC__ takes different numbers of parameters ' +
+        'depending on what you want to do. Click this link to learn more: '
+    }
+  };
+
   /**
    * Validate all the parameters of a function for number and type
    *
@@ -119,22 +137,19 @@ define(function (require) {
     }
     var symbol = 'X'; // Parameter placeholder
     if(diff > 0) {
-      message = 'You wrote ' + func + '(';
-      // Concat an appropriate number of placeholders for call
-      if (args.length > 0) {
-        message += symbol + (','+symbol).repeat(args.length-1);
-      }
-      message += '). ' + func + ' was expecting ' + types[tindex].length +
-        ' parameters. Try ' + func + '(';
-      // Concat an appropriate number of placeholders for definition
-      if (types[tindex].length > 0) {
-        message += symbol + (','+symbol).repeat(types[tindex].length-1);
-      }
-      message += ').';
+      var givenX = args.length > 0 ?
+        symbol + (','+symbol).repeat(args.length-1) : '';
+      var correctX = args.length > 0 ?
+        symbol + (','+symbol).repeat(types[tindex].length-1) : '';
+      message = languageStrings[userLang].wrong_param_count
+        .replace(/__FUNC__/g, func)
+        .replace(/__GIVEN_X__/g, givenX)
+        .replace(/__CORRECT_X__/g, correctX)
+        .replace(/__PARAMCOUNT__/g, types[tindex].length);
       // If multiple definitions
       if (types.length > 1) {
-        message += ' ' + func + ' takes different numbers of parameters ' +
-          'depending on what you want to do. Click this link to learn more: ';
+        message += languageStrings[userLang].multi_format
+          .replace(/__FUNC__/g, func);
       }
       report(message, func, PARAM_COUNT);
     }
@@ -150,21 +165,21 @@ define(function (require) {
         var defType = types[format][p];
         var argType = getType(args[p]);
         if ('undefined' === argType || null === argType) {
-          report('It looks like ' + func +
-            ' received an empty variable in spot #' + (p+1) +
-            '. If not intentional, this is often a problem with scope: ' +
-            '[link to scope].', func, EMPTY_VAR);
+          message = languageStrings[userLang].empty_var
+            .replace(/__FUNC__/g, func)
+            .replace(/__SPOT__/g, p+1);
+          report(message, func, EMPTY_VAR);
         } else if (!typeMatches(defType, argType, args[p])) {
-          message = func + ' was expecting a ' + defType.toLowerCase() +
-            ' for parameter #' + (p+1) + ', received ';
-          // Wrap strings in quotes
-          message += 'string' === argType ? '"' + args[p] + '"' : args[p];
-          message += ' instead.';
+          var received = 'string' === argType ? '"' + args[p] + '"' : args[p];
+          message = languageStrings[userLang].empty_var
+            .replace(/__FUNC__/g, func)
+            .replace(/__SPOT__/g, p+1)
+            .replace(/__TYPE__/g, defType.toLowerCase())
+            .replace(/__VAR__/g, received);
           // If multiple definitions
           if (types.length > 1) {
-            message += ' ' + func + ' takes different numbers of parameters ' +
-              'depending on what you want to do. ' +
-              'Click this link to learn more:';
+            message += languageStrings[userLang].multi_format
+              .replace(/__FUNC__/g, func);
           }
           report(message, func, WRONG_TYPE);
         }
